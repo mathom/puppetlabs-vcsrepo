@@ -47,7 +47,6 @@ Puppet::Type.type(:vcsrepo).provide(:git, :parent => Puppet::Provider::Vcsrepo) 
   end
 
   def revision
-    update_references
     current = at_path { git_with_identity('rev-parse', 'HEAD').chomp }
     return current unless @resource.value(:revision)
 
@@ -59,6 +58,7 @@ Puppet::Type.type(:vcsrepo).provide(:git, :parent => Puppet::Provider::Vcsrepo) 
       if canonical.empty?
         # git rev-parse executed properly but didn't find the ref;
         # look for it in the remote
+        update_references
         remote_ref = at_path { git_with_identity('ls-remote', '--heads', '--tags', @resource.value(:remote), @resource.value(:revision)).chomp }
         if remote_ref.empty?
           fail("#{@resource.value(:revision)} is not a local or remote ref")
@@ -226,6 +226,7 @@ Puppet::Type.type(:vcsrepo).provide(:git, :parent => Puppet::Provider::Vcsrepo) 
   end
 
   def checkout(revision = @resource.value(:revision))
+    update_references
     if !local_branch_revision? && remote_branch_revision?
       at_path { git_with_identity('checkout', '-b', revision, '--track', "#{@resource.value(:remote)}/#{revision}") }
     else
